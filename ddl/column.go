@@ -277,7 +277,7 @@ func onDropColumn(t *meta.Meta, job *model.Job) (ver int64, _ error) {
 		ver, err = updateVersionAndTableInfo(t, job, tblInfo, originalState != colInfo.State)
 	case model.StateDeleteReorganization:
 		// To be filled
-		//job.SchemaState = model.StateNone
+		tblInfo.Columns = tblInfo.Columns[:len(tblInfo.Columns)-1]
 		colInfo.State = model.StateNone
 		ver, err = updateVersionAndTableInfo(t, job, tblInfo, originalState != colInfo.State)
 		if job.IsRollingback() {
