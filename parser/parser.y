@@ -811,6 +811,7 @@ import (
 	InsertValues			"Rest part of INSERT/REPLACE INTO statement"
 	JoinTable 			"join table"
 	JoinType			"join type"
+	JoinSpecification		"join specification"
 	LocationLabelList		"location label name list"
 	LikeEscapeOpt 			"like escape option"
 	LikeTableWithOrWithoutParen	"LIKE table_name or ( LIKE table_name )"
@@ -3809,6 +3810,14 @@ JoinTable:
 	{
 		$$ = &ast.Join{Left: $1.(ast.ResultSetNode), Right: $3.(ast.ResultSetNode), Tp: ast.CrossJoin}
 	}
+|	TableRef JoinType OuterOpt "JOIN" TableRef JoinSpecification
+	{
+		j := &ast.Join{Left: $1.(ast.ResultSetNode), Right: $5.(ast.ResultSetNode), Tp: $2.(ast.JoinType)}
+		if $6 != nil {
+			j.On = $6.(*ast.OnCondition)
+		}
+		$$ = j
+	}
 	/* Project 2: your code here.
 	 * You can see details about JoinTable in https://dev.mysql.com/doc/refman/8.0/en/join.html
 	 *
@@ -3819,6 +3828,11 @@ JoinTable:
          * }
          *
 	 */
+JoinSpecification:
+	"ON" Expression
+	{
+		$$ = &ast.OnCondition{Expr: $2}
+	}
 
 JoinType:
 	"LEFT"

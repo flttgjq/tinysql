@@ -200,16 +200,25 @@ func onAddColumn(d *ddlCtx, t *meta.Meta, job *model.Job) (ver int64, err error)
 		columnInfo.State = model.StateDeleteOnly
 		job.SchemaState = model.StateDeleteOnly
 		ver, err = updateVersionAndTableInfoWithCheck(t, job, tblInfo, originalState != columnInfo.State)
+		if err != nil {
+			return 0, err
+		}
 	case model.StateDeleteOnly:
 		// To be filled
 		columnInfo.State = model.StateWriteOnly
 		job.SchemaState = model.StateWriteOnly
 		ver, err = updateVersionAndTableInfo(t, job, tblInfo, originalState != columnInfo.State)
+		if err != nil {
+			return 0, err
+		}
 	case model.StateWriteOnly:
 		// To be filled
 		columnInfo.State = model.StateWriteReorganization
 		job.SchemaState = model.StateWriteReorganization
 		ver, err = updateVersionAndTableInfo(t, job, tblInfo, originalState != columnInfo.State)
+		if err != nil {
+			return 0, err
+		}
 	case model.StateWriteReorganization:
 		// To be filled
 		adjustColumnInfoInAddColumn(tblInfo, offset)
