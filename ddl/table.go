@@ -375,34 +375,14 @@ func updateVersionAndTableInfoWithCheck(t *meta.Meta, job *model.Job, tblInfo *m
  */
 func updateVersionAndTableInfo(t *meta.Meta, job *model.Job, tblInfo *model.TableInfo, shouldUpdateVer bool) (
 	ver int64, err error) {
-	// TODO complete this function.
-	//if !shouldUpdateVer {
-	//	logutil.BgLogger().Info("updateVersionAndTableInfo no need to update")
-	//	return t.GetSchemaVersion()
-	//}
-	//
-	//ver, err = updateSchemaVersion(t, job)
-	//if err != nil {
-	//	logutil.BgLogger().Error("updateVersionAndTableInfo update schema version failed", zap.Error(err))
-	//	return ver, errors.Trace(err)
-	//}
-	//
-	//tblInfo.UpdateTS = t.StartTS
-	//if t.UpdateTable(job.SchemaID, tblInfo) != nil {
-	//	logutil.BgLogger().Error("updateVersionAndTableInfo update table failed", zap.Error(err))
-	//	return ver, errors.Trace(err)
-	//}
-	//
-	//return ver, errors.Trace(err)
-
+  
 	if shouldUpdateVer {
 		ver, err = updateSchemaVersion(t, job)
 		if err != nil {
 			return 0, errors.Trace(err)
 		}
 	}
-
-	// it's table's UpdateTS, not owner's UpdateTS
+  
 	if tblInfo.State == model.StatePublic {
 		tblInfo.UpdateTS = t.StartTS
 	}
