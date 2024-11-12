@@ -3810,7 +3810,7 @@ JoinTable:
 	{
 		$$ = &ast.Join{Left: $1.(ast.ResultSetNode), Right: $3.(ast.ResultSetNode), Tp: ast.CrossJoin}
 	}
-|	TableRef JoinType OuterOpt "JOIN" TableRef JoinSpecification
+|	TableRef JoinType OuterOpt CrossOpt TableRef JoinSpecification
 	{
 		j := &ast.Join{Left: $1.(ast.ResultSetNode), Right: $5.(ast.ResultSetNode), Tp: $2.(ast.JoinType)}
 		if $6 != nil {
@@ -3818,6 +3818,15 @@ JoinTable:
 		}
 		$$ = j
 	}
+|   TableRef CrossOpt TableRef "ON" Expression
+ 	{
+ 		$$ = &ast.Join{
+ 			Left: $1.(ast.ResultSetNode),
+ 			Right: $3.(ast.ResultSetNode),
+ 			Tp: ast.CrossJoin,
+ 			On: &ast.OnCondition{Expr: $5},
+ 		}
+ 	}
 	/* Project 2: your code here.
 	 * You can see details about JoinTable in https://dev.mysql.com/doc/refman/8.0/en/join.html
 	 *
