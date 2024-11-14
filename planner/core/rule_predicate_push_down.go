@@ -14,7 +14,6 @@ package core
 
 import (
 	"context"
-
 	"github.com/pingcap/tidb/expression"
 	"github.com/pingcap/tidb/parser/ast"
 	"github.com/pingcap/tidb/parser/mysql"
@@ -357,16 +356,54 @@ func (p *LogicalProjection) PredicatePushDown(predicates []expression.Expression
 // A simple example is that `select * from (select count(*) from t group by b) tmp_t where b > 1` is the same with
 // `select * from (select count(*) from t where b > 1 group by b) tmp_t.
 // parameters:
-//   predicates: an expression slice which needs to be pushed down as deeply as possible.
+//
+//	predicates: an expression slice which needs to be pushed down as deeply as possible.
+//
 // return values:
-//   ret:     the expressions that can't be pushed.
-//   retPlan: a plan that represents a new root, because it might change the root if the having clause exists
+//
+//	ret:     the expressions that can't be pushed.
+//	retPlan: a plan that represents a new root, because it might change the root if the having clause exists
+//
 // In this function, you need to iterate through list `predicates`, and consider whether each function in it can be pushed down
 // below the current aggregation.
 // Hints:
-//   1. predicates need to be discussed in two types: expression.Constant and expression.ScalarFunction
+//  1. predicates need to be discussed in two types: expression.Constant and expression.ScalarFunction
 func (la *LogicalAggregation) PredicatePushDown(predicates []expression.Expression) (ret []expression.Expression, retPlan LogicalPlan) {
-	return predicates, la
+	originalExpressions := make([]expression.Expression, 0, len(la.AggFuncs))
+	canBePushed := make([]expression.Expression, 0, len(predicates))
+	groupByColumns := expression.NewSchema(la.GetGroupByCols()...)
+	canNotBePushed := make([]expression.Expression, 0, len(predicates))
+
+	for _, aggfunc := range la.AggFuncs {
+		originalExpressions = append(originalExpressions, aggfunc.Args[0])
+	}
+
+	for _, cond := range predicates {
+		switch cond.(type) {
+		case *expression.Constant: // eg. 1 = 2
+			canBePushed = append(canBePushed, cond)
+			canNotBePushed = append(canNotBePushed, cond)
+		case *expression.ScalarFunction: // eg. a > 1
+			cols := expression.ExtractColumns(cond)
+			isok := true
+			for _, col := range cols {
+				if !groupByColumns.Contains(col) {
+					isok = false
+					break
+				}
+			}
+
+			if isok {
+				newExpressions := expression.ColumnSubstitute(cond, groupByColumns, originalExpressions)
+				canBePushed = append(canBePushed, newExpressions)
+			} else {
+				canNotBePushed = append(canNotBePushed, cond)
+			}
+		}
+	}
+
+	la.baseLogicalPlan.PredicatePushDown(canBePushed)
+	return canNotBePushed, la
 }
 
 // PredicatePushDown implements LogicalPlan PredicatePushDown interface.
